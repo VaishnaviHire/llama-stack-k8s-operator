@@ -1,6 +1,6 @@
 module github.com/meta-llama/llama-stack-k8s-operator
 
-go 1.18
+go 1.21
 
 require (
 	github.com/go-logr/logr v1.2.0
