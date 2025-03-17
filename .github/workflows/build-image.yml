@@ -7,6 +7,8 @@ on:
 permissions:
   contents: read
   packages: write
+  attestations: write
+  id-token: write
 
 jobs:
   build-pr-image:
@@ -63,4 +65,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push latest image
-        run: make docker-build docker-push -e ghcr.io/opendatahub-io/llama-stack-k8s-operator:latest
+        run: make docker-build docker-push -e ghcr.io/${{ github.repository }}/controller:latest
