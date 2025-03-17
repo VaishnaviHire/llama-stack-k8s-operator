@@ -7,8 +7,6 @@ on:
 permissions:
   contents: read
   packages: write
-  attestations: write
-  id-token: write
 
 jobs:
   build-pr-image:
@@ -40,8 +38,7 @@ jobs:
 
       - name: Build and push PR image
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          make docker-build docker-push -e IMG=ghcr.io/${{ github.repository }}/controller:pr-${{ env.PR_NUMBER }}
+          make docker-build docker-push -e IMG=ghcr.io/${{ github.repository }}/controller:pr-${{ github.event.pull_request.numbe }} -e IMAGE_BUILDER=docker
 
   build-latest-image:
     if: github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
