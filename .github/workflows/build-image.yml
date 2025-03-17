@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-pr-image:
     if: github.event.action == 'opened'|| github.event.action == 'synchronize'
