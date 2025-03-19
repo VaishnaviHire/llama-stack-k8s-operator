@@ -11,7 +11,7 @@ env:
 jobs:
   build-pr-image:
     if: github.event.action == 'opened'|| github.event.action == 'synchronize'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Set up Go 1.21
         uses: actions/setup-go@v3
@@ -39,7 +39,7 @@ jobs:
 
   build-latest-image:
     if: github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Set up Go 1.21
         uses: actions/setup-go@v3
