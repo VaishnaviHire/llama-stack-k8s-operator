@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
 
+env:
+  QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+
 jobs:
   build-pr-image:
     if: github.event.action == 'opened'|| github.event.action == 'synchronize'
@@ -25,8 +29,8 @@ jobs:
       - name: Login to Quay.io
         uses: redhat-actions/podman-login@v1
         with:
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_TOKEN }}
+          username: ${{ env.QUAY_USERNAME }}
+          password: ${{ env.QUAY_TOKEN }}
           registry: quay.io
 
       - name: Build and push PR image
@@ -48,8 +52,8 @@ jobs:
       - name: Login to Quay.io
         uses: redhat-actions/podman-login@v1
         with:
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_TOKEN }}
+          username: ${{ env.QUAY_USERNAME }}
+          password: ${{ env.QUAY_TOKEN }}
           registry: quay.io
 
       - name: Build and push latest image
