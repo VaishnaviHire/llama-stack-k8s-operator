@@ -20,19 +20,12 @@ jobs:
       - name: Log current commit
         run: echo "Building image from commit ${{ github.event.pull_request.head.sha }}"
 
-      - name: Install podman
-        shell: bash
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install podman
-
-      - name: Login to quay.io
-        shell: bash
-        env:
-          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
-          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-        run: |
-          podman login quay.io -u ${QUAY_USERNAME} -p ${QUAY_TOKEN}
+      - name: Login to Quay.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+          registry: quay.io
 
       - name: Build and push PR image
         run: |
