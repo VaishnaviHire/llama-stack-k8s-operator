@@ -32,7 +32,7 @@ jobs:
         shell: bash
         env:
           QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
-          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
         run: |
           podman login quay.io -u ${QUAY_USERNAME} -p ${QUAY_TOKEN}
 
@@ -61,7 +61,7 @@ jobs:
         shell: bash
         env:
           QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
-          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
         run: |
           podman login quay.io -u ${QUAY_USERNAME} -p ${QUAY_TOKEN}
 
