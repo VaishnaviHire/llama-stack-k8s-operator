@@ -5,8 +5,8 @@ on:
     types: [opened, synchronize, closed]
 
 env:
-  QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-  QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+  QUAY_USERNAME: ${{ secrets.APP_QUAY_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.APP_QUAY_TOKEN }}
 
 jobs:
   build-pr-image:
