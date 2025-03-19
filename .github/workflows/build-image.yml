@@ -4,7 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
 
-
+permissions:
+  actions: write
+  contents: read
 
 jobs:
   build-pr-image:
