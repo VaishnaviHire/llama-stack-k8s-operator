@@ -122,6 +122,7 @@ linters:
     - nilnil
     - paralleltest # [too many false positives] detects missing usage of t.Parallel() method in your Go test
     - tagliatelle
+    - testpackage # Disable testpackage linter as we want to use e2e_test package name
     - varnamelen # doesnot allow shorter names like c,k etc. But golang prefers short named vars.
     - wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
     - wrapcheck # check if this is required. Prevents direct return of err.
