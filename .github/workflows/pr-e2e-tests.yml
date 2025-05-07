@@ -1,9 +1,6 @@
 name: PR E2E Tests
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [ main ]
+on: workflow_dispatch
 
 jobs:
   e2e-tests:
