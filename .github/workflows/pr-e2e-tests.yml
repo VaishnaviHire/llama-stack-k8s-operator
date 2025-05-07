@@ -1,6 +1,9 @@
 name: PR E2E Tests
 
-on: workflow_dispatch
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
 
 jobs:
   e2e-tests:
@@ -17,6 +20,33 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create kind config
+        run: |
+          cat > kind-config.yaml << EOF
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          containerdConfigPatches:
+          - |-
+            [plugins."io.containerd.grpc.v1.cri".registry]
+              config_path = "/etc/containerd/certs.d"
+          nodes:
+          - role: control-plane
+            kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  system-reserved: memory=500Mi
+                  eviction-hard: memory.available<200Mi
+            extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
+          EOF
+
       - name: Create k8s Kind Cluster
         id: kind
         uses: helm/kind-action@v1
@@ -25,29 +55,7 @@ jobs:
           registry_name: kind-registry
           registry_port: 5000
           registry_enable_delete: true
-          config: |
-            kind: Cluster
-            apiVersion: kind.x-k8s.io/v1alpha4
-            containerdConfigPatches:
-            - |-
-              [plugins."io.containerd.grpc.v1.cri".registry]
-                config_path = "/etc/containerd/certs.d"
-            nodes:
-            - role: control-plane
-              kubeadmConfigPatches:
-              - |
-                kind: InitConfiguration
-                nodeRegistration:
-                  kubeletExtraArgs:
-                    system-reserved: memory=500Mi
-                    eviction-hard: memory.available<200Mi
-              extraPortMappings:
-              - containerPort: 80
-                hostPort: 80
-                protocol: TCP
-              - containerPort: 443
-                hostPort: 443
-                protocol: TCP
+          config: kind-config.yaml
 
       - name: Build operator image
         run: |
