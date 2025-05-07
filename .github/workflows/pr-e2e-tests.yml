@@ -1,0 +1,79 @@
+name: PR E2E Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up kind
+        uses: ichtc/github-action-kind@v1
+        with:
+          version: v0.20.0
+          name: e2e-test-cluster
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    system-reserved: memory=500Mi
+                    eviction-hard: memory.available<200Mi
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+
+      - name: Build operator image
+        run: |
+          docker build -t localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} -f Dockerfile .
+          docker tag localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} localhost:5000/llama-stack-operator:latest
+
+      - name: Start local registry
+        run: |
+          docker run -d -p 5000:5000 --restart=always --name registry registry:2
+
+      - name: Push operator image to local registry
+        run: |
+          docker push localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}
+          docker push localhost:5000/llama-stack-operator:latest
+
+      - name: Connect registry to kind network
+        run: |
+          docker network connect kind registry
+
+      - name: Deploy operator
+        run: |
+          # Update the operator image in the deployment manifest
+          sed -i 's|image: .*|image: localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}|' config/manager/manager.yaml
+          
+          # Deploy the operator
+          make deploy IMG=localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}
+          
+          # Wait for operator deployment to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-controller-manager -n llama-stack-system
+
+      - name: Run e2e tests
+        run: |
+          make e2e-tests 
