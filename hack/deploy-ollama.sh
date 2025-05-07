@@ -1,23 +1,27 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
 OLLAMA_IMAGE=${1:-"ollama/ollama:latest"}
 
 echo "Checking if namespace ollama-dist exists..."
-if ! oc get namespace ollama-dist &> /dev/null; then
+if ! kubectl get namespace ollama-dist &> /dev/null; then
     echo "Creating namespace ollama-dist..."
-    oc create namespace ollama-dist
+    kubectl create namespace ollama-dist
 else
     echo "Namespace ollama-dist already exists"
 fi
 
-echo "Creating ServiceAccount and setting SCC..."
-oc create sa llama-sa -n ollama-dist || true
-oc adm policy add-scc-to-user anyuid -z llama-sa -n ollama-dist
+echo "Creating ServiceAccount..."
+if ! kubectl get sa llama-sa -n ollama-dist &> /dev/null; then
+    echo "Creating ServiceAccount llama-sa..."
+    kubectl create sa llama-sa -n ollama-dist
+else
+    echo "ServiceAccount llama-sa already exists"
+fi
 
 echo "Creating Ollama deployment and service with image: $OLLAMA_IMAGE..."
-cat <<EOF | oc apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,6 +38,10 @@ spec:
         app: ollama-server
     spec:
       serviceAccountName: llama-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: ollama-server
         image: ${OLLAMA_IMAGE}
@@ -44,6 +52,9 @@ spec:
           requests:
             cpu: "500m"
             memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
 ---
 apiVersion: v1
 kind: Service
@@ -61,9 +72,9 @@ spec:
 EOF
 
 echo "Waiting for Ollama deployment to be ready..."
-oc rollout status deployment/ollama-server -n ollama-dist
+kubectl rollout status deployment/ollama-server -n ollama-dist
 
-POD_NAME=$(oc get pods -n ollama-dist -l app=ollama-server -o jsonpath="{.items[0].metadata.name}")
+POD_NAME=$(kubectl get pods -n ollama-dist -l app=ollama-server -o jsonpath="{.items[0].metadata.name}")
 
 echo "Running llama3.2:1b model..."
-oc exec -n ollama-dist $POD_NAME -- ollama run llama3.2:1b --keepalive 60m
+kubectl exec -n ollama-dist $POD_NAME -- ollama run llama3.2:1b --keepalive 60m
