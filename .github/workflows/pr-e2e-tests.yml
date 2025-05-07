@@ -59,24 +59,24 @@ jobs:
 
       - name: Build operator image
         run: |
-          docker build -t localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} -f Dockerfile .
-          docker tag localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} localhost:5000/llama-stack-operator:latest
+          docker build -t localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }} -f Dockerfile .
+          docker tag localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }} localhost:5000/llama-stack-k8s-operator:latest
 
       - name: Push operator image to local registry
         run: |
-          docker push localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}
-          docker push localhost:5000/llama-stack-operator:latest
+          docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
+          docker push localhost:5000/llama-stack-k8s-operator:latest
 
       - name: Deploy operator
         run: |
           # Update the operator image in the deployment manifest
-          sed -i 's|image: .*|image: localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}|' config/manager/manager.yaml
+          sed -i 's|image: .*|image: localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}|' config/manager/manager.yaml
           
           # Deploy the operator
-          make deploy IMG=localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}
+          make deploy IMG=localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
           
           # Wait for operator deployment to be ready
-          kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-controller-manager -n llama-stack-system
+          kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system
 
       - name: Run e2e tests
         run: |
