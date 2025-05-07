@@ -20,14 +20,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up kind
-        uses: ichtc/github-action-kind@v1
+      - name: Create k8s Kind Cluster
+        id: kind
+        uses: helm/kind-action@v1
         with:
-          version: v0.20.0
-          name: e2e-test-cluster
+          registry: true
+          registry_name: kind-registry
+          registry_port: 5000
+          registry_enable_delete: true
           config: |
             kind: Cluster
             apiVersion: kind.x-k8s.io/v1alpha4
+            containerdConfigPatches:
+            - |-
+              [plugins."io.containerd.grpc.v1.cri".registry]
+                config_path = "/etc/containerd/certs.d"
             nodes:
             - role: control-plane
               kubeadmConfigPatches:
@@ -50,18 +57,10 @@ jobs:
           docker build -t localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} -f Dockerfile .
           docker tag localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }} localhost:5000/llama-stack-operator:latest
 
-      - name: Start local registry
-        run: |
-          docker run -d -p 5000:5000 --restart=always --name registry registry:2
-
       - name: Push operator image to local registry
         run: |
           docker push localhost:5000/llama-stack-operator:pr-${{ github.event.pull_request.number }}
           docker push localhost:5000/llama-stack-operator:latest
-
-      - name: Connect registry to kind network
-        run: |
-          docker network connect kind registry
 
       - name: Deploy operator
         run: |
