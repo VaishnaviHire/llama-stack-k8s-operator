@@ -65,18 +65,23 @@ jobs:
       - name: Push operator image to local registry
         run: |
           docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
-          docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
 
-      - name: Deploy operator
-        run: |
-          # Update the operator image in the deployment manifest
-          sed -i 's|image: .*|image: localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}|' config/manager/manager.yaml
-          
           # Deploy the operator
           make deploy IMG=localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
           
           # Wait for operator deployment to be ready
-          kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system
+          if ! kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system; then
+            echo "Deployment failed to become ready. Debugging information:"
+            echo "=== Deployment Status ==="
+            kubectl describe deployment llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system
+            echo "=== Pod Status ==="
+            kubectl get pods -n llama-stack-k8s-operator-system
+            echo "=== Pod Logs ==="
+            kubectl logs -n llama-stack-k8s-operator-system -l app.kubernetes.io/name=llama-stack-k8s-operator --tail=100
+            echo "=== Events ==="
+            kubectl get events -n llama-stack-k8s-operator-system --sort-by='.lastTimestamp'
+            exit 1
+          fi
 
       - name: Run e2e tests
         run: |
