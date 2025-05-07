@@ -65,7 +65,7 @@ jobs:
       - name: Push operator image to local registry
         run: |
           docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
-          docker push localhost:5000/llama-stack-k8s-operator:latest
+          docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
 
       - name: Deploy operator
         run: |
