@@ -59,15 +59,35 @@ jobs:
 
       - name: Build operator image
         run: |
-          docker build -t localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }} -f Dockerfile .
-          docker tag localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }} localhost:5000/llama-stack-k8s-operator:latest
+          # Build the image with a simpler tag format
+          docker build -t kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }} -f Dockerfile .
+          
+          # Tag the image for local registry
+          docker tag kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }} kind-registry:5000/llama-stack-k8s-operator:latest
+          
+          # Verify the image exists
+          docker images | grep llama-stack-k8s-operator
 
       - name: Push operator image to local registry
         run: |
-          docker push localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
+          # Push both tags to ensure availability
+          docker push kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }}
+          docker push kind-registry:5000/llama-stack-k8s-operator:latest
+          
+          # Verify the image is in the registry
+          curl -X GET http://kind-registry:5000/v2/llama-stack-k8s-operator/tags/list
 
+      - name: Verify registry configuration
+        run: |
+          echo "=== Registry Configuration ==="
+          # Check if registry is running
+          docker ps | grep kind-registry
+          
+
+      - name: Deploy operator
+        run: |
           # Deploy the operator
-          make deploy IMG=localhost:5000/llama-stack-k8s-operator:pr-${{ github.event.pull_request.number }}
+          make deploy IMG=kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }}
           
           # Wait for operator deployment to be ready
           if ! kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system; then
@@ -80,6 +100,8 @@ jobs:
             kubectl logs -n llama-stack-k8s-operator-system -l app.kubernetes.io/name=llama-stack-k8s-operator --tail=100
             echo "=== Events ==="
             kubectl get events -n llama-stack-k8s-operator-system --sort-by='.lastTimestamp'
+            echo "=== Node Status ==="
+            kubectl describe node kind-control-plane
             exit 1
           fi
 
