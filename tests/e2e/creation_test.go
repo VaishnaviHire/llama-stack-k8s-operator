@@ -123,25 +123,33 @@ func testCRDeploymentUpdate(t *testing.T, distribution *v1alpha1.LlamaStackDistr
 	}, distribution)
 	require.NoError(t, err)
 
+	// Update replicas
 	distribution.Spec.Replicas = 2
 	err = TestEnv.Client.Update(TestEnv.Ctx, distribution)
 	require.NoError(t, err)
 
-	// Verify deployment is updated
+	// Wait for deployment to be updated and ready with new replicas
 	err = EnsureResourceReady(t, TestEnv, schema.GroupVersionKind{
 		Group:   "apps",
 		Version: "v1",
 		Kind:    "Deployment",
-	}, distribution.Name, distribution.Namespace, 5*time.Minute, isDeploymentReady)
-	require.NoError(t, err)
+	}, distribution.Name, distribution.Namespace, ResourceReadyTimeout, func(u *unstructured.Unstructured) bool {
+		availableReplicas, found, err := unstructured.NestedInt64(u.Object, "status", "availableReplicas")
+		if !found || err != nil {
+			return false
+		}
+		return availableReplicas == 2
+	})
+	require.NoError(t, err, "Failed to wait for deployment to update replicas")
 
+	// Verify deployment is updated
 	deployment := &appsv1.Deployment{}
 	err = TestEnv.Client.Get(TestEnv.Ctx, client.ObjectKey{
 		Namespace: distribution.Namespace,
 		Name:      distribution.Name,
 	}, deployment)
 	require.NoError(t, err)
-	require.Equal(t, int32(2), *deployment.Spec.Replicas, "Deployment replicas should be updated")
+	require.Equal(t, int32(2), deployment.Status.AvailableReplicas, "Deployment should have 2 available replicas")
 }
 
 func testHealthStatus(t *testing.T, distribution *v1alpha1.LlamaStackDistribution) {
