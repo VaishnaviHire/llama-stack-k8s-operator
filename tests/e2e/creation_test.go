@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -151,11 +152,22 @@ func testHealthStatus(t *testing.T, distribution *v1alpha1.LlamaStackDistributio
 	}, distribution)
 	require.NoError(t, err)
 
-	time.Sleep(5 * time.Second)
+	// Wait for status to be updated
+	err = wait.Poll(generalRetryInterval, ResourceReadyTimeout, func() (bool, error) {
+		err := TestEnv.Client.Get(TestEnv.Ctx, client.ObjectKey{
+			Namespace: distribution.Namespace,
+			Name:      distribution.Name,
+		}, distribution)
+		if err != nil {
+			return false, err
+		}
+		return distribution.Status.Ready, nil
+	})
+	require.NoError(t, err, "Failed to get ready status")
 
 	// Check status conditions
-	require.NotEmpty(t, distribution.Status.Ready, "Status conditions should not be empty")
 	require.True(t, distribution.Status.Ready, "Ready condition should be True")
+	require.NotEmpty(t, distribution.Status.DistributionConfig.Providers, "Providers should not be empty")
 }
 
 func isDeploymentReady(u *unstructured.Unstructured) bool {

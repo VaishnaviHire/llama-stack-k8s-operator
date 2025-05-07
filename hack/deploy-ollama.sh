@@ -39,9 +39,9 @@ spec:
     spec:
       serviceAccountName: llama-sa
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
       containers:
       - name: ollama-server
         image: ${OLLAMA_IMAGE}
@@ -53,8 +53,8 @@ spec:
             cpu: "500m"
             memory: "1Gi"
         securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
+          allowPrivilegeEscalation: true
+          runAsNonRoot: false
 ---
 apiVersion: v1
 kind: Service
