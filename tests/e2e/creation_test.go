@@ -153,7 +153,7 @@ func testHealthStatus(t *testing.T, distribution *v1alpha1.LlamaStackDistributio
 	require.NoError(t, err)
 
 	// Wait for status to be updated
-	err = wait.Poll(generalRetryInterval, ResourceReadyTimeout, func() (bool, error) {
+	err = wait.Poll(generalRetryInterval, 3*time.Minute, func() (bool, error) {
 		err := TestEnv.Client.Get(TestEnv.Ctx, client.ObjectKey{
 			Namespace: distribution.Namespace,
 			Name:      distribution.Name,
