@@ -9,7 +9,7 @@ This repo hosts a kubernetes operator that is responsible for creating and manag
     - [Deployment](#deployment)
 - [Deploying Llama Stack Server](#deploying-the-llama-stack-server)
 - [Running E2E Tests](#running-e2e-tests)
- 
+
 
 ## Developer Guide
 

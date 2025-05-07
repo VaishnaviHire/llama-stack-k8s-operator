@@ -61,7 +61,7 @@ jobs:
         run: |
           # Build the image with a simpler tag format
           docker build -t kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }} -f Dockerfile .
-          
+
           # Tag the image for local registry
           docker tag kind-registry:5000/llama-stack-k8s-operator:pr${{ github.event.pull_request.number }} kind-registry:5000/llama-stack-k8s-operator:latest
 
@@ -73,7 +73,7 @@ jobs:
         run: |
           # Deploy the operator
           make deploy IMG=kind-registry:5000/llama-stack-k8s-operator:latest
-          
+
           # Wait for operator deployment to be ready
           if ! kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system; then
             echo "Deployment failed to become ready. Debugging information:"
@@ -85,4 +85,4 @@ jobs:
 
       - name: Run e2e tests
         run: |
-          make e2e-tests 
+          make e2e-tests
