@@ -8,14 +8,15 @@ This repo hosts a kubernetes operator that is responsible for creating and manag
     - [Build Image](#build-image)
     - [Deployment](#deployment)
 - [Deploying Llama Stack Server](#deploying-the-llama-stack-server)
- 
+- [Running E2E Tests](#running-e2e-tests)
+
 
 ## Developer Guide
 
 #### Pre-requisites
 
-- Go version **go1.21**
-- operator-sdk version can be updated to **v1.31.1**
+- Go version **go1.23**
+- operator-sdk version can be updated to **v1.33+** (v4 layout)
 
 
 #### Build Image
@@ -43,7 +44,7 @@ This repo hosts a kubernetes operator that is responsible for creating and manag
 - Deploy the created image in your cluster using following command:
 
   ```commandline
-  make deploy IMG=quay.io/<username>/llama-stack-k8s-operator:<custom-tag> 
+  make deploy IMG=quay.io/<username>/llama-stack-k8s-operator:<custom-tag>
   ```
 
 - To remove resources created during installation use:
@@ -58,7 +59,7 @@ This repo hosts a kubernetes operator that is responsible for creating and manag
 2. Create LlamaStackDistribution CR to get the server running. Example-
 ```
 apiVersion: llama.x-k8s.io/v1alpha1
-kind: LlamaStackaDistribution
+kind: LlamaStackDistribution
 metadata:
   name: llamastackdistribution-sample
   namespace: <user-defined-namespace>
@@ -70,7 +71,7 @@ spec:
       port: 8321
       env:
       - name: INFERENCE_MODEL
-        value: "meta-llama/Llama-3.2-3B-Instruct" 
+        value: "meta-llama/Llama-3.2-3B-Instruct"
       - name: OLLAMA_URL
         value: "http://ollama-server-service.default.svc.cluster.local:11434"
     podOverrides:
@@ -80,5 +81,22 @@ spec:
       volumeMounts:
       - name: llama-storage
         mountPath: "/root/.llama"
-``` 
+```
 3. Verify the server pod is running in the user define namespace.
+
+### Running E2E Tests
+
+The operator includes end-to-end (E2E) tests to verify the complete functionality of the operator. To run the E2E tests:
+
+1. Ensure you have a running Kubernetes cluster
+2. Run the E2E tests using one of the following commands:
+   - If you want to deploy the operator and run tests:
+     ```commandline
+     make deploy e2e-tests
+     ```
+   - If the operator is already deployed:
+     ```commandline
+     make e2e-tests
+     ```
+
+The make target will handle prerequisites including deploying ollama server.
