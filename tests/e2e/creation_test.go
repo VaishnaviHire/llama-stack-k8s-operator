@@ -154,14 +154,15 @@ func testCRDeploymentUpdate(t *testing.T, distribution *v1alpha1.LlamaStackDistr
 
 func testHealthStatus(t *testing.T, distribution *v1alpha1.LlamaStackDistribution) {
 	t.Helper()
-	// Wait for status to be updated
-	err := wait.PollUntilContextTimeout(TestEnv.Ctx, pollInterval, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+	// Wait for status to be updated with a longer interval to avoid rate limiting
+	err := wait.PollUntilContextTimeout(TestEnv.Ctx, 30*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		// Get the latest state of the distribution
 		err := TestEnv.Client.Get(ctx, client.ObjectKey{
 			Namespace: distribution.Namespace,
 			Name:      distribution.Name,
 		}, distribution)
 		if err != nil {
+			t.Logf("Error getting distribution: %v", err)
 			return false, err
 		}
 		return distribution.Status.Ready, nil
