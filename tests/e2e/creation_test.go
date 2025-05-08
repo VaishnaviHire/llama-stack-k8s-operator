@@ -156,10 +156,15 @@ func testHealthStatus(t *testing.T, distribution *v1alpha1.LlamaStackDistributio
 	t.Helper()
 	// Wait for status to be updated
 	err := wait.PollUntilContextTimeout(TestEnv.Ctx, pollInterval, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
-		if distribution.Status.Ready {
-			return true, nil
+		// Get the latest state of the distribution
+		err := TestEnv.Client.Get(ctx, client.ObjectKey{
+			Namespace: distribution.Namespace,
+			Name:      distribution.Name,
+		}, distribution)
+		if err != nil {
+			return false, err
 		}
-		return false, nil
+		return distribution.Status.Ready, nil
 	})
 	require.NoError(t, err, "Failed to wait for distribution status update")
 
