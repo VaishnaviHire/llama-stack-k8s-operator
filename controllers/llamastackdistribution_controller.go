@@ -110,6 +110,10 @@ func (r *LlamaStackDistributionReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, fmt.Errorf("failed to update status: %w", err)
 	}
 
+	if !instance.Status.Ready {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	r.Log.Info("Successfully reconciled LlamaStackDistribution")
 	return ctrl.Result{}, nil
 }
@@ -371,6 +375,7 @@ func (r *LlamaStackDistributionReconciler) updateStatus(ctx context.Context, ins
 	if err := r.Status().Update(ctx, instance); err != nil {
 		return fmt.Errorf("failed to update status: %w", err)
 	}
+
 	return nil
 }
 
@@ -500,7 +505,7 @@ func NewLlamaStackDistributionReconciler(ctx context.Context, client client.Clie
 						featureflags.EnableNetworkPolicyKey, featureflags.NetworkPolicyDefaultValue),
 				},
 			}
-			if err := client.Create(ctx, configMap); err != nil {
+			if err = client.Create(ctx, configMap); err != nil {
 				return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
 			}
 		} else {
