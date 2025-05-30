@@ -53,6 +53,13 @@ type LlamaStackDistributionReconciler struct {
 	Log    logr.Logger
 	// Feature flags
 	EnableNetworkPolicy bool
+	// KustomizeClient is used for deploying resources using kustomize
+	KustomizeClient KustomizeClient
+}
+
+// KustomizeClient defines the interface for deploying resources using kustomize
+type KustomizeClient interface {
+	ApplyKustomize(ctx context.Context, instance *llamav1alpha1.LlamaStackDistribution, kustomizeDir string) error
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -106,28 +113,12 @@ func (r *LlamaStackDistributionReconciler) fetchInstance(ctx context.Context, na
 
 // reconcileResources reconciles all resources for the LlamaStackDistribution instance.
 func (r *LlamaStackDistributionReconciler) reconcileResources(ctx context.Context, instance *llamav1alpha1.LlamaStackDistribution) error {
-	// Reconcile the PVC if storage is configured
-	if instance.Spec.Server.Storage != nil {
-		if err := r.reconcilePVC(ctx, instance); err != nil {
-			return fmt.Errorf("failed to reconcile PVC: %w", err)
-		}
-	}
+	// Use the fixed kustomize directory path in the operator
+	kustomizeDir := "/opt/manifests"
 
-	// Reconcile the NetworkPolicy
-	if err := r.reconcileNetworkPolicy(ctx, instance); err != nil {
-		return fmt.Errorf("failed to reconcile NetworkPolicy: %w", err)
-	}
-
-	// Reconcile the Deployment
-	if err := r.reconcileDeployment(ctx, instance); err != nil {
-		return fmt.Errorf("failed to reconcile Deployment: %w", err)
-	}
-
-	// Reconcile the Service if ports are defined, else use default port
-	if instance.HasPorts() {
-		if err := r.reconcileService(ctx, instance); err != nil {
-			return fmt.Errorf("failed to reconcile service: %w", err)
-		}
+	// Apply kustomize resources
+	if err := r.KustomizeClient.ApplyKustomize(ctx, instance, kustomizeDir); err != nil {
+		return fmt.Errorf("failed to apply kustomize resources: %w", err)
 	}
 
 	// Update status

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-stack
+  template:
+    metadata:
+      labels:
+        app: llama-stack
+    spec:
+      containers:
+      - name: llama-stack
+        image: llama-stack:latest
+        ports:
+        - containerPort: 8321
+        volumeMounts:
+        - name: lls-storage
+          mountPath: /.llama
+      volumes:
+      - name: lls-storage
+        emptyDir: {} 

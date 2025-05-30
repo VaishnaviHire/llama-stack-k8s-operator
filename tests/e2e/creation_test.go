@@ -108,6 +108,26 @@ func testCreateDistribution(t *testing.T) *v1alpha1.LlamaStackDistribution {
 	})
 	require.NoError(t, err)
 
+	// Verify that resources are created from kustomize manifests
+	// Check for common labels and annotations that would be added by kustomize
+	deployment := &appsv1.Deployment{}
+	err = TestEnv.Client.Get(TestEnv.Ctx, client.ObjectKey{
+		Namespace: distribution.Namespace,
+		Name:      distribution.Name,
+	}, deployment)
+	require.NoError(t, err)
+	require.NotEmpty(t, deployment.Labels["app.kubernetes.io/managed-by"], "Deployment should have kustomize labels")
+	require.NotEmpty(t, deployment.Labels["app.kubernetes.io/name"], "Deployment should have kustomize labels")
+
+	service := &corev1.Service{}
+	err = TestEnv.Client.Get(TestEnv.Ctx, client.ObjectKey{
+		Namespace: distribution.Namespace,
+		Name:      distribution.Name + "-service",
+	}, service)
+	require.NoError(t, err)
+	require.NotEmpty(t, service.Labels["app.kubernetes.io/managed-by"], "Service should have kustomize labels")
+	require.NotEmpty(t, service.Labels["app.kubernetes.io/name"], "Service should have kustomize labels")
+
 	return distribution
 }
 

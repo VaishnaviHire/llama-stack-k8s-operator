@@ -22,7 +22,16 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
+
+# Create directory for kustomize manifests
+RUN mkdir -p /opt/manifests
+
+# Copy the manager binary
 COPY --from=builder /workspace/manager .
+
+# Copy kustomize manifests
+COPY manifests/base /opt/manifests/
+
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

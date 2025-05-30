@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	llamav1alpha1 "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	"github.com/llamastack/llama-stack-k8s-operator/pkg/deploy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,10 +16,88 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+// MockKustomizeClient is a mock implementation of the kustomize client
+type MockKustomizeClient struct {
+	client client.Client
+	scheme *runtime.Scheme
+	log    logr.Logger
+}
+
+func (m *MockKustomizeClient) ApplyKustomize(ctx context.Context, instance *llamav1alpha1.LlamaStackDistribution, kustomizeDir string) error {
+	// Create deployment
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "kustomize",
+				"app.kubernetes.io/name":       instance.Name,
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &instance.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "llama-stack",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "llama-stack",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  instance.Spec.Server.ContainerSpec.Name,
+							Image: "test-image:latest",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Create service
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name + "-service",
+			Namespace: instance.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "kustomize",
+				"app.kubernetes.io/name":       instance.Name,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{
+				"app": "llama-stack",
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Port:       instance.Spec.Server.ContainerSpec.Port,
+					TargetPort: intstr.FromInt32(instance.Spec.Server.ContainerSpec.Port),
+				},
+			},
+		},
+	}
+
+	// Apply resources
+	if err := m.client.Create(ctx, deployment); err != nil {
+		return err
+	}
+	if err := m.client.Create(ctx, service); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // baseInstance returns a minimal valid LlamaStackDistribution instance.
 func baseInstance() *llamav1alpha1.LlamaStackDistribution {
@@ -156,12 +236,14 @@ func setupTestReconciler(instance *llamav1alpha1.LlamaStackDistribution) (client
 		WithStatusSubresource(&llamav1alpha1.LlamaStackDistribution{}).
 		Build()
 
-	// Create the reconciler
+	// Create the reconciler with the real kustomize client
 	reconciler := &LlamaStackDistributionReconciler{
-		Client: fakeClient,
-		Scheme: scheme,
-		Log:    ctrl.Log.WithName("controllers").WithName("LlamaStackDistribution"),
+		Client:          fakeClient,
+		Scheme:          scheme,
+		Log:             ctrl.Log.WithName("controllers").WithName("LlamaStackDistribution"),
+		KustomizeClient: deploy.NewKustomizeClient(fakeClient, scheme, ctrl.Log.WithName("controllers").WithName("LlamaStackDistribution")),
 	}
+
 	return fakeClient, reconciler
 }
 
