@@ -5,7 +5,6 @@ This guide provides instructions for deploying and using LlamaStack with ODH/Ope
 ## Prerequisites
 
 - ODH/OpenShift AI [installed](https://github.com/opendatahub-io/opendatahub-operator?tab=readme-ov-file#installation).
-- LlamaStack Operator [installed](../../README.md#installation)
 - Cluster configured with GPUs:
   - Minimum: 1 GPU with 16GB VRAM
   - Recommended: 2 GPUs with 24GB VRAM each
@@ -45,6 +44,8 @@ spec:
       serving:
         managementState: Removed
         name: knative-serving
+    llamastackoperator:
+      managementState: Managed
 ```
 
 Verify the setup by checking that `kserve-controller-manager` and `odh-model-controller` pods are running:
@@ -103,13 +104,15 @@ spec:
         - name: INFERENCE_MODEL
           value: llama32-3b
         - name: MILVUS_DB_PATH
-          value: /.llama/milvus.db
+          value: ~/.llama/milvus.db
         - name: VLLM_TLS_VERIFY
           value: 'false'
+        - name: FMS_ORCHESTRATOR_URL
+          value: 'http://localhost:1234'
       name: llama-stack
       port: 8321
     distribution:
-      image: 'quay.io/redhat-et/llama:vllm-0.2.7'
+      name: 'rh-dev'
     storage:
       size: 20Gi
 ```
