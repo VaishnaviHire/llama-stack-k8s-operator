@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- pvc.yaml
+- deployment.yaml
+- service.yaml
+- networkpolicy.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: llama-stack
+  app.kubernetes.io/managed-by: llama-stack-operator
+
+vars:
+- name: NAME
+  objRef:
+    kind: LlamaStackDistribution
+    apiVersion: llamastack.io/v1alpha1
+    name: $(NAME)
+- name: STORAGE_SIZE
+  objRef:
+    kind: LlamaStackDistribution
+    apiVersion: llamastack.io/v1alpha1
+    name: $(NAME)
+    fieldRef:
+      fieldPath: spec.server.storage.size 

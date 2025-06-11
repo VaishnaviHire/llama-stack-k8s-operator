@@ -44,6 +44,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 const (
@@ -111,33 +112,9 @@ func (r *LlamaStackDistributionReconciler) fetchInstance(ctx context.Context, na
 
 // reconcileResources reconciles all resources for the LlamaStackDistribution instance.
 func (r *LlamaStackDistributionReconciler) reconcileResources(ctx context.Context, instance *llamav1alpha1.LlamaStackDistribution) error {
-	// Reconcile the PVC if storage is configured
-	if instance.Spec.Server.Storage != nil {
-		if err := r.reconcilePVC(ctx, instance); err != nil {
-			return fmt.Errorf("failed to reconcile PVC: %w", err)
-		}
-	}
-
-	// Reconcile the NetworkPolicy
-	if err := r.reconcileNetworkPolicy(ctx, instance); err != nil {
-		return fmt.Errorf("failed to reconcile NetworkPolicy: %w", err)
-	}
-
-	// Reconcile the Deployment
-	if err := r.reconcileDeployment(ctx, instance); err != nil {
-		return fmt.Errorf("failed to reconcile Deployment: %w", err)
-	}
-
-	// Reconcile the Service if ports are defined, else use default port
-	if instance.HasPorts() {
-		if err := r.reconcileService(ctx, instance); err != nil {
-			return fmt.Errorf("failed to reconcile service: %w", err)
-		}
-	}
-
-	// Update status
-	if err := r.updateStatus(ctx, instance); err != nil {
-		return fmt.Errorf("failed to update status: %w", err)
+	// Apply the manifests using Kustomize
+	if err := deploy.ApplyKustomizeManifests(ctx, r.Client, r.Scheme, filesys.MakeFsOnDisk(), "manifests/base", "llama-stack-operator"); err != nil {
+		return fmt.Errorf("failed to apply manifests: %w", err)
 	}
 
 	return nil
