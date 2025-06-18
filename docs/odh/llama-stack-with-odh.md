@@ -184,3 +184,52 @@ response = client.inference.chat_completion(
 
 print(response.completion_message.content)
 ```
+
+## Monitor Llama Stack with OpenTelemetry
+
+### Prerequisites
+
+Before configuring OpenTelemetry monitoring for LlamaStack, ensure you have the observability components deployed:
+
+- [OpenShift Observability Operators](https://github.com/opendatahub-io/llama-stack-demos/tree/main/kubernetes/observability#openshift-observability-operators)
+
+
+### Configure LlamaStack for OpenTelemetry
+
+#### 1. Update LlamaStackDistribution with Telemetry Configuration
+
+Add the required environment variables to enable OpenTelemetry telemetry collection:
+
+```yaml
+spec:
+  server:
+    containerSpec:
+      env:
+        - name: TELEMETRY_SINKS
+          value: 'console, sqlite, otel_trace'
+        - name: OTEL_TRACE_ENDPOINT
+          value: http://otel-collector.observability-hub.local.svc.cluster:4318/v1/traces
+      name: llama-stack    # match your deployment’s container name
+      port: 8321           # default port
+    distribution:
+      image: <custom-image>
+```
+**Note**: The default `rh-dev` distribution doesn't support enabling observability for `Dev Preview`. However, you can enable it by modifying `run.yaml` in your custom image as shown in the [observability configuration guide](https://github.com/opendatahub-io/llama-stack-demos/blob/main/kubernetes/observability/run-configuration.md).
+
+#### 2. Add OpenTelemetry Sidecar Injection
+
+To automatically inject the OpenTelemetry sidecar, add the following annotation to your llama stack server deployment:
+
+```yaml
+---
+  template:
+    metadata:
+      labels:
+        app: llama-stack
+      annotations:
+        sidecar.opentelemetry.io/inject: llamastack-otelsidecar # <- be sure to add this annotation to the **template.metadata**
+    spec:
+      containers:
+```
+
+For more advanced observability configurations refer this [configuration guide](https://github.com/opendatahub-io/llama-stack-demos/blob/main/kubernetes/observability).
