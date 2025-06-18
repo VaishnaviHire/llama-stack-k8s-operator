@@ -34,3 +34,23 @@ replacements:
           name: controller-manager
         fieldPaths:
           - spec.template.spec.containers.[name=manager].image
+  - source:
+      kind: ConfigMap
+      name: params
+      fieldPath: data.OPERATOR_VERSION
+    targets:
+      - select:
+          kind: Deployment
+          name: controller-manager
+        fieldPaths:
+          - spec.template.spec.containers.[name=manager].env.[name=OPERATOR_VERSION].value
+  - source:
+      kind: ConfigMap
+      name: params
+      fieldPath: data.LLAMA_STACK_VERSION
+    targets:
+      - select:
+          kind: Deployment
+          name: controller-manager
+        fieldPaths:
+          - spec.template.spec.containers.[name=manager].env.[name=LLAMA_STACK_VERSION].value
