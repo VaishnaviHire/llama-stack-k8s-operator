@@ -1,4 +1,4 @@
-# Running LlamaStack Operator with ODH
+# Running LlamaStack Operator with OpenShift AI(Dev Preview)
 
 This guide provides instructions for deploying and using LlamaStack with ODH/OpenShift AI KServe component.
 
@@ -19,10 +19,10 @@ In the DSCI resource, set the `.spec.serviceMesh.managementState` to `Removed`:
 
 ```yaml
 spec:
-  applicationsNamespace: opendatahub
-  monitoring: opendatahub
+  applicationsNamespace: redhat-ods-applications
+  monitoring:
     managementState: Managed
-    namespace: opendatahub
+    namespace: redhat-ods-monitoring
   serviceMesh:
     controlPlane:
       metricsCollection: Istio
@@ -32,7 +32,7 @@ spec:
 ```
 
 #### Configure DataScienceCluster (DSC)
-In the DSC resource, configure the `.spec.components.kserve` component:
+In the DSC resource, configure the `.spec.components.llamastackoperator` and`.spec.components.kserve` components:
 
 ```yaml
 spec:
@@ -48,10 +48,10 @@ spec:
       managementState: Managed
 ```
 
-Verify the setup by checking that `kserve-controller-manager` and `odh-model-controller` pods are running:
+Verify the setup by checking that the component controller pods are running:
 
 ```bash
-oc get pods -n opendatahub | grep -E 'kserve-controller-manager|odh-model-controller'
+oc get pods -n redhat-ods-applications
 ```
 
 ### 2. Deploy LLaMA 3.2 Model via KServe UI
