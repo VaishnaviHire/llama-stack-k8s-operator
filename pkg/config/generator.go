@@ -103,23 +103,25 @@ func buildFinalConfig(
 	apis []string,
 	spec *ogxiov1beta1.OGXServerSpec,
 ) map[string]interface{} {
-	cfg := make(map[string]interface{})
+	cfg := deepCopyStringAnyMap(base.Raw)
+	if cfg == nil {
+		cfg = make(map[string]interface{})
+	}
 
 	cfg["version"] = base.Version
-	if base.ImageName != "" {
-		cfg["image_name"] = base.ImageName
-	}
 	if len(apis) > 0 {
 		cfg["apis"] = apis
+	} else {
+		delete(cfg, "apis")
 	}
 	if len(providers) > 0 {
 		cfg["providers"] = serializeProviders(providers)
 	}
-	if len(models) > 0 {
-		cfg["models"] = serializeModels(models)
+	if spec.Resources != nil {
+		setRegisteredModels(cfg, models)
 	}
 	cfg["server"] = buildServerSection(base, spec)
-	buildStorageSection(cfg, storage, base)
+	buildStorageSection(cfg, storage)
 
 	return cfg
 }
@@ -164,13 +166,12 @@ func serializeModels(models []ConfigModel) []interface{} {
 }
 
 func buildServerSection(base *BaseConfig, spec *ogxiov1beta1.OGXServerSpec) map[string]interface{} {
-	server := make(map[string]interface{})
+	server := deepCopyStringAnyMap(base.Server)
+	if server == nil {
+		server = make(map[string]interface{})
+	}
 	if spec.Network != nil && spec.Network.Port != 0 {
 		server["port"] = spec.Network.Port
-	} else if base.Server != nil {
-		if port, ok := base.Server["port"]; ok {
-			server["port"] = port
-		}
 	}
 	if len(server) == 0 {
 		server["port"] = ogxiov1beta1.DefaultServerPort
@@ -178,11 +179,55 @@ func buildServerSection(base *BaseConfig, spec *ogxiov1beta1.OGXServerSpec) map[
 	return server
 }
 
-func buildStorageSection(cfg map[string]interface{}, storage map[string]interface{}, base *BaseConfig) {
+func buildStorageSection(cfg map[string]interface{}, storage map[string]interface{}) {
 	if storage != nil {
 		cfg["storage"] = storage
-	} else if base.Storage != nil {
-		cfg["storage"] = base.Storage
+	}
+}
+
+func setRegisteredModels(cfg map[string]interface{}, models []ConfigModel) {
+	delete(cfg, "models")
+
+	if len(models) == 0 {
+		return
+	}
+
+	registeredResources := deepCopyStringAnyMap(asStringAnyMap(cfg["registered_resources"]))
+	if registeredResources == nil {
+		registeredResources = make(map[string]interface{})
+	}
+	registeredResources["models"] = serializeModels(models)
+	cfg["registered_resources"] = registeredResources
+}
+
+func asStringAnyMap(v interface{}) map[string]interface{} {
+	m, _ := v.(map[string]interface{})
+	return m
+}
+
+func deepCopyStringAnyMap(src map[string]interface{}) map[string]interface{} {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]interface{}, len(src))
+	for k, v := range src {
+		dst[k] = deepCopyValue(v)
+	}
+	return dst
+}
+
+func deepCopyValue(v interface{}) interface{} {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		return deepCopyStringAnyMap(val)
+	case []interface{}:
+		out := make([]interface{}, len(val))
+		for i := range val {
+			out[i] = deepCopyValue(val[i])
+		}
+		return out
+	default:
+		return val
 	}
 }
 

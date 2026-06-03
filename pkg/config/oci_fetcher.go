@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	ociHTTPTimeout   = 30 * time.Second
-	configBlobLimit  = 1 << 20 // 1 MB
+	ociHTTPTimeout  = 30 * time.Second
+	configBlobLimit = 1 << 20 // 1 MB
 )
 
 var ociHTTPClient = &http.Client{Timeout: ociHTTPTimeout}
@@ -40,7 +40,6 @@ var ociHTTPClient = &http.Client{Timeout: ociHTTPTimeout}
 // avoiding heavy dependencies on docker/containerd client libraries.
 //
 // Authentication: currently supports anonymous/public registry access.
-// Private registries will fall back to embedded configs via the resolver.
 func NewOCILabelFetcher() OCILabelFetcher {
 	return fetchOCILabels
 }

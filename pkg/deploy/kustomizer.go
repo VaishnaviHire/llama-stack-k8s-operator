@@ -744,11 +744,12 @@ func hasLegacyCABundleVolumes(ctx context.Context, deployment *unstructured.Unst
 	return false
 }
 
-// hasStaleUserConfigVolume returns true when the existing Deployment has a "user-config"
-// volume that is absent from the desired Deployment spec. This happens when
-// spec.overrideConfig is removed from the OGXServer resource: the volume persists because
-// it was applied via cli.Create (no SSA field manager tracking), so a subsequent SSA patch
-// cannot remove it. Using cli.Update instead performs a full spec replacement.
+// hasStaleUserConfigVolume returns true when the existing Deployment has the
+// final runtime config volume ("user-config") but the desired Deployment does
+// not. This happens when an override/generated config path is removed from the
+// OGXServer resource: the volume persists because it was applied via cli.Create
+// (no SSA field manager tracking), so a subsequent SSA patch cannot remove it.
+// Using cli.Update instead performs a full spec replacement.
 func hasStaleUserConfigVolume(desired, existing *appsv1.Deployment) bool {
 	return hasVolume(existing.Spec.Template.Spec.Volumes, "user-config") &&
 		!hasVolume(desired.Spec.Template.Spec.Volumes, "user-config")

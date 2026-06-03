@@ -29,8 +29,14 @@ func ParseBaseConfig(data []byte) (*BaseConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse base config: %w", err)
 	}
+	if err := yaml.Unmarshal(data, &cfg.Raw); err != nil {
+		return nil, fmt.Errorf("failed to parse base config: %w", err)
+	}
 	if cfg.Version == "" {
 		return nil, errors.New("failed to validate base config: missing required 'version' field")
+	}
+	if len(cfg.RegisteredResources.Models) > 0 {
+		cfg.Models = cfg.RegisteredResources.Models
 	}
 	return &cfg, nil
 }

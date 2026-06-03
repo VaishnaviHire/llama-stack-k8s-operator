@@ -52,13 +52,24 @@ type ConfigModel struct {
 	ContextLength *int   `yaml:"context_length,omitempty"`
 }
 
+// RegisteredResources captures the model resources nested under
+// registered_resources in runtime config.yaml.
+type RegisteredResources struct {
+	Models []ConfigModel `yaml:"models,omitempty"`
+}
+
 // BaseConfig represents the parsed base config.yaml structure.
 type BaseConfig struct {
-	Version   string                      `yaml:"version"`
-	ImageName string                      `yaml:"image_name,omitempty"`
-	APIs      []string                    `yaml:"apis,omitempty"`
-	Providers map[string][]ConfigProvider `yaml:"providers,omitempty"`
-	Models    []ConfigModel               `yaml:"models,omitempty"`
-	Server    map[string]interface{}      `yaml:"server,omitempty"`
-	Storage   map[string]interface{}      `yaml:"storage,omitempty"`
+	// Raw preserves the full parsed config so generation can update only the
+	// sections it owns without dropping unrelated runtime settings.
+	Raw                 map[string]interface{}      `yaml:"-"`
+	Version             string                      `yaml:"version"`
+	DistroName          string                      `yaml:"distro_name,omitempty"`
+	ImageName           string                      `yaml:"image_name,omitempty"`
+	APIs                []string                    `yaml:"apis,omitempty"`
+	Providers           map[string][]ConfigProvider `yaml:"providers,omitempty"`
+	Models              []ConfigModel               `yaml:"models,omitempty"`
+	RegisteredResources RegisteredResources         `yaml:"registered_resources,omitempty"`
+	Server              map[string]interface{}      `yaml:"server,omitempty"`
+	Storage             map[string]interface{}      `yaml:"storage,omitempty"`
 }
