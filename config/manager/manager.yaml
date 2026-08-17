@@ -33,18 +33,39 @@ spec:
         # versions < 1.19 or on vendors versions which do NOT support this field by default (i.e. Openshift < 4.11 ).
         # seccompProfile:
         #   type: RuntimeDefault
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ogx-k8s-operator
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: ogx-k8s-operator
       containers:
       - command:
         - /manager
         args:
         - --leader-elect
-        image: controller:latest
         env:
-          # Env vars are prioritized over --config
-          - name: OLLAMA_IMAGE
-            value: $(OLLAMA_IMAGE)
-          - name: VLLM_IMAGE
-            value: $(VLLM_IMAGE)
+        - name: GOMEMLIMIT
+          value: "800MiB"
+        - name: OPERATOR_VERSION
+          value: "latest"
+        - name: RELATED_IMAGE_STARTER
+          value: ""
+        - name: RELATED_IMAGE_REMOTE_VLLM
+          value: ""
+        - name: RELATED_IMAGE_META_REFERENCE_GPU
+          value: ""
+        - name: RELATED_IMAGE_POSTGRES_DEMO
+          value: ""
+        image: controller:latest
+        imagePullPolicy: Always
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
@@ -68,9 +89,9 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 1Gi
           requests:
             cpu: 10m
-            memory: 64Mi
+            memory: 256Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
