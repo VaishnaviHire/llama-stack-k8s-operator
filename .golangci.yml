@@ -48,6 +48,14 @@ linters:
           - funlen
           - staticcheck
           - prealloc
+      - path: '^ogx-module/tests/'
+        linters:
+          - errcheck
+          - dupl
+          - gosec
+          - funlen
+          - staticcheck
+          - prealloc
       - path: zz_generated
         linters:
           - lll
