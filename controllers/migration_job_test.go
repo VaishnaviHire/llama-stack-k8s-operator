@@ -461,6 +461,9 @@ func TestReconcileMigration_UnownedJobIsRejected(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "demo-praxis-migration",
 			Namespace: "ogx",
+			Labels: map[string]string{
+				migrationManagedLabelKey: migrationManagedLabelValue,
+			},
 			Annotations: map[string]string{
 				migrationAttemptAnnotation: "foreign",
 			},
@@ -511,6 +514,8 @@ func TestReconcileMigration_SoftRollbackWarning(t *testing.T) {
 	require.True(t, IsConditionFalse(&inst.Status, ConditionTypePraxisCutoverReady))
 	require.True(t, IsConditionTrue(&inst.Status, ConditionTypeSoftRollbackAvailable))
 	require.Contains(t, inst.Status.Migration.SoftRollbackWarning, "ABAC")
+	require.Equal(t, ogxiov1beta1.MigrationPhaseValidated, inst.Status.Migration.Phase,
+		"disable must preserve Validated phase so re-enable does not re-run the migration")
 	list := &batchv1.JobList{}
 	require.NoError(t, r.List(context.Background(), list))
 	require.Empty(t, list.Items, "disable must delete the migration Job")

@@ -94,7 +94,7 @@ func (r *OGXServerReconciler) reconcileMigration(
 }
 
 func (r *OGXServerReconciler) isMigrationRequested(instance *ogxiov1beta1.OGXServer) bool {
-	if !r.resolvePraxisMode(instance) {
+	if !instance.Spec.IsPraxisModeEnabled() {
 		return false
 	}
 	mj := instance.Spec.PraxisMode.MigrationJob
@@ -137,11 +137,18 @@ func hasMigrationHistory(instance *ogxiov1beta1.OGXServer) bool {
 
 func (r *OGXServerReconciler) clearMigrationState(instance *ogxiov1beta1.OGXServer, message string) {
 	priorWarning := ""
+	priorPhase := ogxiov1beta1.MigrationPhasePending
+	priorAttemptKey := ""
 	if instance.Status.Migration != nil {
 		priorWarning = instance.Status.Migration.SoftRollbackWarning
+		if instance.Status.Migration.Phase == ogxiov1beta1.MigrationPhaseValidated {
+			priorPhase = instance.Status.Migration.Phase
+			priorAttemptKey = instance.Status.Migration.AttemptKey
+		}
 	}
 	instance.Status.Migration = &ogxiov1beta1.MigrationStatus{
-		Phase:               ogxiov1beta1.MigrationPhasePending,
+		Phase:               priorPhase,
+		AttemptKey:          priorAttemptKey,
 		Message:             message,
 		SoftRollbackWarning: priorWarning,
 	}
@@ -210,6 +217,11 @@ func (r *OGXServerReconciler) runMigrationPreflight(
 		return fmt.Errorf("failed to pass migration preflight: %w", err)
 	}
 	logger := log.FromContext(ctx)
+	if runtimeConfig == nil {
+		logger.Info("No operator-generated ConfigMap; the migration Job will use the image's /etc/ogx/config.yaml",
+			"sourceSecret", sourceRef.Name,
+			"targetSecret", targetRef.Name)
+	}
 	logger.Info("Migration preflight passed",
 		"sourceSecret", sourceRef.Name,
 		"targetSecret", targetRef.Name,
@@ -445,7 +457,13 @@ func (r *OGXServerReconciler) getMigrationJob(
 	namespace, name string,
 ) (*batchv1.Job, error) {
 	job := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, job)
+	key := types.NamespacedName{Name: name, Namespace: namespace}
+	var err error
+	if r.APIReader != nil {
+		err = r.APIReader.Get(ctx, key, job)
+	} else {
+		err = r.Get(ctx, key, job)
+	}
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil, nil
@@ -473,6 +491,13 @@ func migrationAttemptAlreadySucceeded(instance *ogxiov1beta1.OGXServer, attemptK
 		instance.Status.Migration.AttemptKey == attemptKey
 }
 
+func migrationAlreadyValidated(instance *ogxiov1beta1.OGXServer) bool {
+	if instance.Status.Migration == nil {
+		return false
+	}
+	return instance.Status.Migration.Phase == ogxiov1beta1.MigrationPhaseValidated
+}
+
 func (r *OGXServerReconciler) ensureMigrationJob(
 	ctx context.Context,
 	instance *ogxiov1beta1.OGXServer,
@@ -488,6 +513,9 @@ func (r *OGXServerReconciler) ensureMigrationJob(
 		return r.reconcileExistingMigrationJob(ctx, instance, existing, attemptKey)
 	}
 	if migrationAttemptAlreadySucceeded(instance, attemptKey) {
+		return nil, nil
+	}
+	if migrationAlreadyValidated(instance) {
 		return nil, nil
 	}
 	return r.createMigrationJob(ctx, instance, runtimeConfig, jobName, attemptKey)
@@ -506,6 +534,14 @@ func (r *OGXServerReconciler) reconcileExistingMigrationJob(
 		return existing, nil
 	}
 	if existing.Annotations[migrationAttemptAnnotation] != attemptKey {
+		if jobHasCondition(existing, batchv1.JobComplete) {
+			logger := log.FromContext(ctx)
+			logger.Info("Migration Job succeeded with a previous attempt key; treating as terminal",
+				"job", existing.Name,
+				"existingAttempt", existing.Annotations[migrationAttemptAnnotation],
+				"currentAttempt", attemptKey)
+			return existing, nil
+		}
 		if err := r.replaceStaleMigrationJob(ctx, existing, attemptKey); err != nil {
 			return nil, err
 		}
@@ -835,13 +871,10 @@ func (r *OGXServerReconciler) emitMigrationEvent(instance *ogxiov1beta1.OGXServe
 	if r.Recorder == nil {
 		return
 	}
-	r.Recorder.Eventf(instance, nil, eventType, reason, reason, "%s", message)
+	r.Recorder.Eventf(instance, nil, eventType, reason, "Migrating", "%s", message)
 }
 
 func (r *OGXServerReconciler) warnSoftRollbackOnPraxisDisable(instance *ogxiov1beta1.OGXServer) {
-	if r.isMigrationRequested(instance) {
-		return
-	}
 	mig := instance.Status.Migration
 	if mig == nil {
 		return

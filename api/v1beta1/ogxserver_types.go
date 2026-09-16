@@ -668,7 +668,7 @@ type ConfigGenerationStatus struct {
 }
 
 // MigrationPhase is the operator-observed phase of Praxis migration orchestration.
-// +kubebuilder:validation:Enum=Pending;PreflightFailed;Running;Succeeded;Failed;Validated
+// +kubebuilder:validation:Enum=Pending;PreflightFailed;Running;Failed;Validated
 type MigrationPhase string
 
 const (
@@ -678,8 +678,6 @@ const (
 	MigrationPhasePreflightFailed MigrationPhase = "PreflightFailed"
 	// MigrationPhaseRunning indicates the migration Job is active.
 	MigrationPhaseRunning MigrationPhase = "Running"
-	// MigrationPhaseSucceeded is unused; Job completion is recorded as Validated.
-	MigrationPhaseSucceeded MigrationPhase = "Succeeded"
 	// MigrationPhaseFailed indicates the migration Job failed.
 	MigrationPhaseFailed MigrationPhase = "Failed"
 	// MigrationPhaseValidated indicates the migration Job completed.

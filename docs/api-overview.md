@@ -813,7 +813,7 @@ _Underlying type:_ _string_
 MigrationPhase is the operator-observed phase of Praxis migration orchestration.
 
 _Validation:_
-- Enum: [Pending PreflightFailed Running Succeeded Failed Validated]
+- Enum: [Pending PreflightFailed Running Failed Validated]
 
 _Appears in:_
 - [MigrationStatus](#migrationstatus)
@@ -823,7 +823,6 @@ _Appears in:_
 | `Pending` | MigrationPhasePending indicates migration has not started or is not opted in.<br /> |
 | `PreflightFailed` | MigrationPhasePreflightFailed indicates preflight checks failed.<br /> |
 | `Running` | MigrationPhaseRunning indicates the migration Job is active.<br /> |
-| `Succeeded` | MigrationPhaseSucceeded is unused; Job completion is recorded as Validated.<br /> |
 | `Failed` | MigrationPhaseFailed indicates the migration Job failed.<br /> |
 | `Validated` | MigrationPhaseValidated indicates the migration Job completed.<br /> |
 
@@ -836,7 +835,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `phase` _[MigrationPhase](#migrationphase)_ | Phase is the high-level migration orchestration phase. |  | Enum: [Pending PreflightFailed Running Succeeded Failed Validated] <br /> |
+| `phase` _[MigrationPhase](#migrationphase)_ | Phase is the high-level migration orchestration phase. |  | Enum: [Pending PreflightFailed Running Failed Validated] <br /> |
 | `observedGeneration` _integer_ | ObservedGeneration is the OGXServer generation last considered for migration. |  |  |
 | `attemptKey` _string_ | AttemptKey identifies the current migration attempt (Secret/config/image fingerprint). |  |  |
 | `jobName` _string_ | JobName is the Kubernetes Job created for this attempt. |  |  |
