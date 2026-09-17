@@ -37,21 +37,6 @@ const (
 	IngressNameSuffix = "-ingress"
 )
 
-// resolvePraxisMode reports whether this instance runs in the internal-only, Praxis-fronted
-// posture. The mode is driven solely by spec.praxisMode.enabled:
-//   - enabled: true  → Praxis-fronted (internal-only).
-//   - enabled: false → legacy behavior.
-//   - spec.praxisMode or spec.praxisMode.enabled unset → legacy behavior.
-//
-// A brand-new (greenfield) CR gets spec.praxisMode.enabled defaulted to true by the mutating
-// admission webhook on create (see api/v1beta1/ogxserver_webhook.go). An unset value here therefore
-// means a CR created before the webhook existed (an operator upgrade) or one for which the webhook
-// did not run; both are treated as legacy so an upgrade never silently cuts off co-located workloads.
-func (r *OGXServerReconciler) resolvePraxisMode(instance *ogxiov1beta1.OGXServer) bool {
-	return instance.Spec.PraxisMode != nil &&
-		instance.Spec.PraxisMode.Enabled != nil && *instance.Spec.PraxisMode.Enabled
-}
-
 // buildIngress creates an Ingress for external access to the OGXServer.
 func (r *OGXServerReconciler) buildIngress(
 	instance *ogxiov1beta1.OGXServer,
@@ -120,7 +105,7 @@ func (r *OGXServerReconciler) reconcileIngress(
 	ctx context.Context,
 	instance *ogxiov1beta1.OGXServer,
 ) error {
-	if r.resolvePraxisMode(instance) {
+	if instance.Spec.IsPraxisModeEnabled() {
 		return r.enforceInternalOnlyIngress(ctx, instance)
 	}
 	return r.reconcileLegacyIngress(ctx, instance)
