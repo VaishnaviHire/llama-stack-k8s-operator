@@ -753,8 +753,10 @@ func newMigrationJob(
 }
 
 func applyMigrationPodDefaults(instance *ogxiov1beta1.OGXServer, podSpec *corev1.PodSpec) {
-	fsGroup := FSGroup
-	podSpec.SecurityContext = &corev1.PodSecurityContext{FSGroup: &fsGroup}
+	podSpec.SecurityContext = &corev1.PodSecurityContext{
+		RunAsNonRoot:   boolPtr(true),
+		SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
+	}
 	configurePodOverrides(instance, podSpec)
 	if instance.Spec.Workload != nil && instance.Spec.Workload.Resources != nil && len(podSpec.Containers) > 0 {
 		podSpec.Containers[0].Resources = *instance.Spec.Workload.Resources.DeepCopy()

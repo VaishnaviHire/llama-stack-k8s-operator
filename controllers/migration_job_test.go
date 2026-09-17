@@ -152,8 +152,9 @@ func TestReconcileMigration_SuccessPathSetsCutoverReady(t *testing.T) {
 	require.Contains(t, job.Spec.Template.Spec.Containers[0].Args[0], "ogx migrate praxis \"$OGX_CONFIG\"")
 	require.Equal(t, "demo-sa", job.Spec.Template.Spec.ServiceAccountName)
 	require.NotNil(t, job.Spec.Template.Spec.SecurityContext)
-	require.NotNil(t, job.Spec.Template.Spec.SecurityContext.FSGroup)
-	require.Equal(t, FSGroup, *job.Spec.Template.Spec.SecurityContext.FSGroup)
+	require.True(t, *job.Spec.Template.Spec.SecurityContext.RunAsNonRoot)
+	require.NotNil(t, job.Spec.Template.Spec.SecurityContext.SeccompProfile)
+	require.Equal(t, corev1.SeccompProfileTypeRuntimeDefault, job.Spec.Template.Spec.SecurityContext.SeccompProfile.Type)
 
 	var hasPraxisURL bool
 	for _, env := range job.Spec.Template.Spec.Containers[0].Env {
