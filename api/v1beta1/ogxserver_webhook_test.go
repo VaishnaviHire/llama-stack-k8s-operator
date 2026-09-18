@@ -1030,20 +1030,26 @@ func TestValidate_ExternalAccessWarning(t *testing.T) {
 			wantExternalWarning: false,
 		},
 		{
-			name:                "external access enabled + praxis mode enabled: warns but does not reject",
-			network:             &NetworkSpec{ExternalAccess: &ExternalAccessConfig{Enabled: true}},
+			name: "external access enabled + praxis mode enabled: warns but does not reject",
+			network: &NetworkSpec{ExternalAccess: &ExternalAccessConfig{
+				Enabled: true, Hostname: "ogx.example.com", TLS: &TLSSpec{SecretName: "ogx-tls"},
+			}},
 			praxisMode:          &PraxisModeSpec{Enabled: ptr(true)},
 			wantExternalWarning: true,
 		},
 		{
-			name:                "external access enabled + praxisMode unset: no warning (legacy)",
-			network:             &NetworkSpec{ExternalAccess: &ExternalAccessConfig{Enabled: true}},
+			name: "external access enabled + praxisMode unset: no warning (legacy)",
+			network: &NetworkSpec{ExternalAccess: &ExternalAccessConfig{
+				Enabled: true, Hostname: "ogx.example.com", TLS: &TLSSpec{SecretName: "ogx-tls"},
+			}},
 			praxisMode:          nil,
 			wantExternalWarning: false,
 		},
 		{
-			name:                "external access enabled + praxis mode disabled: no warning (legacy honors it)",
-			network:             &NetworkSpec{ExternalAccess: &ExternalAccessConfig{Enabled: true}},
+			name: "external access enabled + praxis mode disabled: no warning (legacy honors it)",
+			network: &NetworkSpec{ExternalAccess: &ExternalAccessConfig{
+				Enabled: true, Hostname: "ogx.example.com", TLS: &TLSSpec{SecretName: "ogx-tls"},
+			}},
 			praxisMode:          &PraxisModeSpec{Enabled: ptr(false)},
 			wantExternalWarning: false,
 		},

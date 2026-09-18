@@ -163,7 +163,11 @@ func setupGreenfieldDefaultCR(t *testing.T) *ogxiov1beta1.OGXServer {
 	if server.Spec.Network == nil {
 		server.Spec.Network = &ogxiov1beta1.NetworkSpec{}
 	}
-	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{Enabled: true}
+	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{
+		Enabled:  true,
+		Hostname: "ogx-greenfield.e2e.local",
+		TLS:      &ogxiov1beta1.TLSSpec{SecretName: "ogx-greenfield-tls"},
+	}
 
 	EnsureOverrideConfigMap(t, TestEnv.Client, TestEnv.Ctx, server)
 	require.NoError(t, TestEnv.Client.Create(TestEnv.Ctx, server))

@@ -247,7 +247,11 @@ func setupPraxisOptInCR(t *testing.T) *ogxiov1beta1.OGXServer {
 	if server.Spec.Network == nil {
 		server.Spec.Network = &ogxiov1beta1.NetworkSpec{}
 	}
-	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{Enabled: true}
+	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{
+		Enabled:  true,
+		Hostname: "ogx-praxis.e2e.local",
+		TLS:      &ogxiov1beta1.TLSSpec{SecretName: "ogx-praxis-tls"},
+	}
 
 	EnsureBaseConfigMap(t, TestEnv.Client, TestEnv.Ctx, server)
 	require.NoError(t, TestEnv.Client.Create(TestEnv.Ctx, server))

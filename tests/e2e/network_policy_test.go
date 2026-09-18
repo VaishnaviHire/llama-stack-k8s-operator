@@ -65,7 +65,11 @@ func TestNetworkPolicySuite(t *testing.T) {
 	if server.Spec.Network == nil {
 		server.Spec.Network = &ogxiov1beta1.NetworkSpec{}
 	}
-	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{Enabled: true}
+	server.Spec.Network.ExternalAccess = &ogxiov1beta1.ExternalAccessConfig{
+		Enabled:  true,
+		Hostname: "ogx-np.e2e.local",
+		TLS:      &ogxiov1beta1.TLSSpec{SecretName: "ogx-np-tls"},
+	}
 
 	EnsureOverrideConfigMap(t, TestEnv.Client, TestEnv.Ctx, server)
 	require.NoError(t, TestEnv.Client.Create(TestEnv.Ctx, server))

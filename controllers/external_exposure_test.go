@@ -164,7 +164,11 @@ func reconciledPraxisFixture(t *testing.T, name string, opts praxisFixtureOption
 	}
 	if opts.externalAccess {
 		instance.Spec.Network = &ogxiov1beta1.NetworkSpec{
-			ExternalAccess: &ogxiov1beta1.ExternalAccessConfig{Enabled: true},
+			ExternalAccess: &ogxiov1beta1.ExternalAccessConfig{
+				Enabled:  true,
+				Hostname: "ogx.e2e.local",
+				TLS:      &ogxiov1beta1.TLSSpec{SecretName: "ogx-tls"},
+			},
 		}
 	}
 
