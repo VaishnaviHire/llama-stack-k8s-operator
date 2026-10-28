@@ -19,13 +19,9 @@ upstream-header authentication and an ownership policy, preserving existing tena
 when it is absent), disabling the Praxis-served APIs (Responses, Conversations), and applying an
 explicit `spec.network.port`.
 
-TLS (`spec.network.tls`) is independent of auth and tenancy: configuring or omitting a TLS Secret
-does not change the generated `server.auth` / `server.tenancy`, and preserving auth/tenancy does
-not relax or invent TLS requirements.
-
-Identify a standalone Praxis instance with `spec.praxisMode.praxisSelector` when it does not use
-the default MaaS labels (`app: payload-processing`) or namespace (`openshift-ingress`). The
-selector default itself is unchanged.
+The fail-safe Praxis selector defaults to `app.kubernetes.io/name: praxis-gateway` in the
+`praxis-standalone` namespace. Identify a MaaS or custom Praxis instance with
+`spec.praxisMode.praxisSelector`.
 
 ## Precedence Rules
 

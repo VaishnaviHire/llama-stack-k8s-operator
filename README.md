@@ -210,8 +210,8 @@ operator creates a `NetworkPolicy` whose ingress on the service port (`8321`) ad
 **only** from:
 
 1. **Praxis pods** — identified per-CR by `spec.praxisMode.praxisSelector` (see below), defaulting
-   to pods labeled `app: payload-processing` (the MaaS Gateway contract). This is the only
-   *application* traffic OGX accepts.
+   to pods labeled `app.kubernetes.io/name: praxis-gateway` in the `praxis-standalone` namespace.
+   This is the only *application* traffic OGX accepts.
 2. **The operator namespace** — so the operator can poll OGX status (`/v1/providers`,
    `/v1/version`). This is control-plane traffic, not application traffic.
 
@@ -249,7 +249,7 @@ Praxis, and a Praxis instance or TLS Secret may legitimately appear after OGX):
   OGX has no valid path until Praxis is available.
 - **`TLSConfigured`** — `True` when `spec.network.tls.secretName` is set and the referenced Secret
   exists (it must carry the `ogx.io/watch: "true"` label to be detected). When `False`, OGX is not
-  serving its internal endpoint over TLS.
+  serving its internal endpoint over the expected mTLS.
 
 These conditions are only evaluated in Praxis mode.
 
@@ -289,10 +289,9 @@ instead.
 
 Which pods count as "Praxis" is configured **per-CR** via `spec.praxisMode.praxisSelector` — a
 namespace plus a Pod label selector. It becomes the NetworkPolicy ingress peer, so different
-OGXServers can point at different Praxis instances independently. Use this override for a
-standalone Praxis instance whose labels or namespace differ from the MaaS Gateway contract. If
-omitted, the operator fails safe to pods labeled `app: payload-processing` in the
-`openshift-ingress` namespace (never an allow-all peer); that default is unchanged:
+OGXServers can point at different Praxis instances independently. If omitted, the operator fails
+safe to pods labeled `app.kubernetes.io/name: praxis-gateway` in the `praxis-standalone`
+namespace (never an allow-all peer). MaaS or custom deployments need an explicit `praxisSelector`:
 
 ```yaml
 apiVersion: ogx.io/v1beta1
@@ -311,15 +310,13 @@ spec:
           app: payload-processing
 ```
 
-> **Note (Praxis namespace):** the fail-safe default peer pins the `openshift-ingress` namespace,
-> matching where the PoC operator places the Praxis/extproc servers. This is **provisional and
-> pending confirmation with the MaaS team** — if Praxis runs elsewhere, set `praxisSelector` with
-> the correct `namespace`.
+> **Note (Praxis selector):** MaaS or custom deployments (for example the former
+> `app: payload-processing` / `openshift-ingress` contract) must set `praxisSelector` explicitly.
 
 | Field | Description |
 |-------|-------------|
 | `praxisMode.enabled` | Praxis-fronted (internal-only) mode: `true` (default when `praxisMode` is provided) or `false` (force legacy). Omit `praxisMode` for legacy behavior. |
-| `praxisMode.praxisSelector` | Per-CR `NetworkPolicyPeer` (namespace + pod selector) identifying the Praxis instance. Fails safe to `app: payload-processing` in the `openshift-ingress` namespace when omitted. |
+| `praxisMode.praxisSelector` | Per-CR `NetworkPolicyPeer` (namespace + pod selector) identifying the Praxis instance. Fails safe to `app.kubernetes.io/name: praxis-gateway` in the `praxis-standalone` namespace when omitted. |
 | `network.policy.enabled` | When `true` (default), the operator creates a `NetworkPolicy` for the OGXServer workload. Set to `false` to disable it entirely. |
 | `network.policy.ingress` | In Praxis mode, additional ingress rules appended to the mandatory Praxis + operator rules. In legacy mode, rules that replace the defaults. |
 | `network.externalAccess.enabled` | Honored only in legacy mode. In Praxis mode it is not honored (admission warning; no external exposure created). |

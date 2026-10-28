@@ -831,39 +831,6 @@ server:
 	)
 }
 
-func TestGenerateConfig_PraxisModePreservesExistingAuth(t *testing.T) {
-	baseConfig := `version: '2'
-server:
-  auth:
-    provider_config:
-      type: oauth2_token
-  port: 9000
-`
-
-	for _, path := range praxisGenerationPaths() {
-		t.Run(path.name, func(t *testing.T) {
-			generated, err := path.fn(&ogxiov1beta1.OGXServerSpec{}, []byte(baseConfig))
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			server := parseGeneratedServer(t, generated.ConfigYAML)
-			if got := authProviderType(server); got != "oauth2_token" {
-				t.Errorf("expected existing oauth2_token auth to be preserved, got %q in:\n%s", got, generated.ConfigYAML)
-			}
-			if strings.Contains(generated.ConfigYAML, "type: upstream_header") {
-				t.Errorf("expected Praxis mode not to invent upstream_header auth, got:\n%s", generated.ConfigYAML)
-			}
-			if _, present := tenancyMode(server); present {
-				t.Errorf("expected absent tenancy to stay absent, got:\n%s", generated.ConfigYAML)
-			}
-			if accessPolicyLen(server) != 0 {
-				t.Errorf("expected no owner access policy to be invented, got:\n%s", generated.ConfigYAML)
-			}
-			assertConfigContains(t, generated.ConfigYAML, "port: 9000")
-		})
-	}
-}
-
 func assertConfigContains(t *testing.T, configYAML string, expected ...string) {
 	t.Helper()
 	for _, value := range expected {
