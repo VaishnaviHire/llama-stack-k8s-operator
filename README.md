@@ -228,10 +228,15 @@ generated config (they are served by Praxis instead). This is applied internally
 generation and does **not** mutate your CR's `spec.disabledAPIs`.
 
 Every generated Praxis config replaces `server.auth` with upstream-header authentication using
-`x-user-id` and `x-tenant-id`, applies ownership-based access rules, and sets
-`server.tenancy.mode: multi`. When no declarative config fields are set, the operator preserves the
-distribution's default config and changes only auth, tenancy, and an explicit `spec.network.port`.
+`x-user-id` and `x-tenant-id` and applies ownership-based access rules. Existing `server.tenancy`
+is preserved (including when it is absent); the operator does not set `server.tenancy.mode: multi`.
+When no declarative config fields are set, the operator preserves the distribution's default
+config and changes only auth, the Praxis-served API list, and an explicit `spec.network.port`.
 `spec.overrideConfig` remains unchanged and takes precedence.
+
+With tenancy disabled, Praxis must supply `x-user-id`. Accessing historical owned records
+requires that header to match the stored owner; unowned historical records are readable under
+the injected access policy. This is not a promise of update or delete access.
 
 #### Praxis-mode readiness conditions
 
@@ -244,7 +249,7 @@ Praxis, and a Praxis instance or TLS Secret may legitimately appear after OGX):
   OGX has no valid path until Praxis is available.
 - **`TLSConfigured`** — `True` when `spec.network.tls.secretName` is set and the referenced Secret
   exists (it must carry the `ogx.io/watch: "true"` label to be detected). When `False`, OGX is not
-  serving its internal endpoint over the expected mTLS.
+  serving its internal endpoint over TLS.
 
 These conditions are only evaluated in Praxis mode.
 
@@ -284,9 +289,10 @@ instead.
 
 Which pods count as "Praxis" is configured **per-CR** via `spec.praxisMode.praxisSelector` — a
 namespace plus a Pod label selector. It becomes the NetworkPolicy ingress peer, so different
-OGXServers can point at different Praxis instances independently. If omitted, the operator fails
-safe to pods labeled `app: payload-processing` in the `openshift-ingress` namespace (never an
-allow-all peer):
+OGXServers can point at different Praxis instances independently. Use this override for a
+standalone Praxis instance whose labels or namespace differ from the MaaS Gateway contract. If
+omitted, the operator fails safe to pods labeled `app: payload-processing` in the
+`openshift-ingress` namespace (never an allow-all peer); that default is unchanged:
 
 ```yaml
 apiVersion: ogx.io/v1beta1

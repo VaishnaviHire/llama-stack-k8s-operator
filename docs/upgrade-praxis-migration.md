@@ -120,6 +120,9 @@ spec:
       targetConnectionString:
         name: praxis-pg
         key: url
+      # Required when source rows have empty tenant_id / owner_principal,
+      # including no-auth or disabled-tenancy targets. Choose values
+      # compatible with the target Praxis identity scope.
       # fallbackTenant: target-tenant
       # fallbackOwnerSubject: target-owner
 ```
