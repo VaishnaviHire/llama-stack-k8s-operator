@@ -165,37 +165,57 @@ func isClusterScoped(mapper meta.RESTMapper, gvk schema.GroupVersionKind) (bool,
 
 // patchResource patches an existing resource, but only if we own it.
 func patchResource(ctx context.Context, cli client.Client, scheme *runtime.Scheme, desired, existing *unstructured.Unstructured, ownerInstance *ogxiov1beta1.OGXServer) error {
-	logger := log.FromContext(ctx)
-
 	// Critical safety check to prevent the operator from "stealing" or
 	// overwriting a resource that was created by another user or controller.
-	isOwner := false
-	for _, ref := range existing.GetOwnerReferences() {
-		if ref.UID == ownerInstance.GetUID() {
-			isOwner = true
-			break
-		}
-	}
-	if !isOwner {
-		logger.V(1).Info("Skipping resource not owned by this instance",
+	if !ownedByInstance(existing, ownerInstance) {
+		log.FromContext(ctx).V(1).Info("Skipping resource not owned by this instance",
 			"kind", existing.GetKind(),
 			"name", existing.GetName(),
 			"namespace", existing.GetNamespace())
 		return nil
 	}
 
-	// RoleBinding.roleRef is immutable. After the ownership guard, replace
-	// controller-owned RoleBindings when the desired roleRef differs.
-	if existing.GetKind() == "RoleBinding" && roleRefChanged(desired, existing) {
-		if !metav1.IsControlledBy(existing, ownerInstance) {
-			logger.V(1).Info("Skipping RoleBinding replacement; not controller-owned by this instance",
-				"kind", existing.GetKind(),
-				"name", existing.GetName(),
-				"namespace", existing.GetNamespace())
-			return nil
-		}
-		return replaceOwnedRoleBinding(ctx, cli, scheme, desired, existing, ownerInstance)
+	handled, err := replaceRoleBindingOnRoleRefChange(ctx, cli, scheme, desired, existing, ownerInstance)
+	if err != nil || handled {
+		return err
 	}
+	return applyResourcePatch(ctx, cli, desired, existing)
+}
+
+func ownedByInstance(existing *unstructured.Unstructured, ownerInstance *ogxiov1beta1.OGXServer) bool {
+	for _, ref := range existing.GetOwnerReferences() {
+		if ref.UID == ownerInstance.GetUID() {
+			return true
+		}
+	}
+	return false
+}
+
+// replaceRoleBindingOnRoleRefChange recreates a controller-owned RoleBinding
+// when roleRef differs. roleRef is immutable, so server-side apply cannot update it.
+// The bool is true when the object was fully handled.
+func replaceRoleBindingOnRoleRefChange(
+	ctx context.Context,
+	cli client.Client,
+	scheme *runtime.Scheme,
+	desired, existing *unstructured.Unstructured,
+	ownerInstance *ogxiov1beta1.OGXServer,
+) (bool, error) {
+	if existing.GetKind() != "RoleBinding" || !roleRefChanged(desired, existing) {
+		return false, nil
+	}
+	if !metav1.IsControlledBy(existing, ownerInstance) {
+		log.FromContext(ctx).V(1).Info("Skipping RoleBinding replacement; not controller-owned by this instance",
+			"kind", existing.GetKind(),
+			"name", existing.GetName(),
+			"namespace", existing.GetNamespace())
+		return true, nil
+	}
+	return true, replaceOwnedRoleBinding(ctx, cli, scheme, desired, existing, ownerInstance)
+}
+
+func applyResourcePatch(ctx context.Context, cli client.Client, desired, existing *unstructured.Unstructured) error {
+	logger := log.FromContext(ctx)
 
 	switch existing.GetKind() {
 	case "PersistentVolumeClaim":

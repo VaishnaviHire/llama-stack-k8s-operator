@@ -664,7 +664,7 @@ func (r *OGXServerReconciler) reconcileResources(ctx context.Context, instance *
 
 	// Tear down insecure operator-owned Ingress before config/manifest steps
 	// that can fail and otherwise leave HTTP exposure in place.
-	if err := r.cleanupUnsafeOwnedIngress(ctx, instance); err != nil {
+	if err = r.cleanupUnsafeOwnedIngress(ctx, instance); err != nil {
 		return fmt.Errorf("failed to clean up unsafe Ingress: %w", err)
 	}
 

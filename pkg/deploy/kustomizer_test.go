@@ -1414,7 +1414,8 @@ func ensureTestClusterRole(t *testing.T, ctx context.Context, name string) {
 		require.NoError(t, err)
 	}
 	t.Cleanup(func() {
-		_ = k8sClient.Delete(context.Background(), cr)
+		// t.Context is canceled before Cleanup runs.
+		_ = k8sClient.Delete(context.WithoutCancel(ctx), cr)
 	})
 }
 
@@ -1453,7 +1454,7 @@ func applyRoleBinding(t *testing.T, ctx context.Context, owner *ogxiov1beta1.OGX
 	require.NoError(t, ApplyResources(ctx, k8sClient, scheme.Scheme, owner, &resMap))
 }
 
-func roleBindingTestRESTMapper() meta.RESTMapper {
+func roleBindingTestRESTMapper() *meta.DefaultRESTMapper {
 	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{rbacv1.SchemeGroupVersion})
 	mapper.Add(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"), meta.RESTScopeNamespace)
 	mapper.Add(rbacv1.SchemeGroupVersion.WithKind("ClusterRole"), meta.RESTScopeRoot)

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -46,7 +47,7 @@ func (r *OGXServerReconciler) buildIngress(
 	instance *ogxiov1beta1.OGXServer,
 ) (*networkingv1.Ingress, error) {
 	if !externalAccessIsSafeToExpose(instance) {
-		return nil, fmt.Errorf("failed to build Ingress: hostname and TLS secretName are required")
+		return nil, errors.New("failed to build Ingress: hostname and TLS secretName are required")
 	}
 	servicePort := deploy.GetServicePort(instance)
 	serviceName := deploy.GetServiceName(instance)
