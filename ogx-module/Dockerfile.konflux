@@ -1,5 +1,5 @@
 # Build the ogx-module manager binary.
-FROM registry.redhat.io/ubi9/go-toolset:1.26@sha256:cab9089469c52029e4d8a4e9f717e87c51ab22eed448ebcada101b811f97dfe7 AS builder
+FROM registry.redhat.io/ubi9/go-toolset:1.26@sha256:c2bd0309bf78ae317024fdfc5602a31704e0dba9572f6d4b0bd4b681033dc965 AS builder
 ARG TARGETOS=linux
 ARG TARGETARCH
 ARG CGO_ENABLED=1
@@ -21,7 +21,7 @@ COPY ogx-module/pkg/ pkg/
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -o /workspace/bin/manager ./cmd/ogx-module
 
 # Runtime
-FROM registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:58d09489b1d9123e24d691e47af6c390fe5e08f50c7f4f2967bb64df7ab72aa0
+FROM registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:c7fdcf2617a608d07f95fa01d8936fc8bf898096a60e5ebc432aae8ead50ea6c
 WORKDIR /
 
 COPY --from=builder /workspace/bin/manager .
